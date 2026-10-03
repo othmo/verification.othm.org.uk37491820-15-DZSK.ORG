@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Verify+ Document Verification</title>
+    <!-- استدعاء مكتبة الأيقونات الرسمية لعرض علامات الصح والترس واليد بدقة -->
+    <link rel="stylesheet" href="https://cloudflare.com">
+    <!-- 🚀 إضافة كود مكتبة عارض الـ PDF هنا دون تغيير بقية الإعدادات -->
+    <script src="lib/webviewer.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            /* الخلفية الزرقاء المكررة للكمبيوتر */
+            background-image: url('bg.jpg');
+            background-repeat: repeat;
+            background-position: top center;
+            background-color: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-content-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+
+        .verification-card {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 850px;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+
+        .card-header img {
+            max-height: 115px;
+            object-fit: contain;
+        }
+
+        /* حاوية أداة العرض الذكية المخصصة بالكامل لمطابقة صورتك */
+        .document-viewer {
+            position: relative;
+            width: 100%;
+            border: none !important;
+            /* 🚀 إزالة الإطار الرمادي الخارجي المشترك */
+            border-radius: 0px !important;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+
+        .valid-banner {
+            width: 100%;
+            background-color: #d2f4f1 !important;
+            /* 🚀 درجة الخلفية الفيروزية الفاتحة للأصلي */
+            color: #035e5f !important;
+            /* 🚀 لون النص الفيروزي الداكن للأصلي */
+            border: none !important;
+            /* الأصلي ليس له إطار خارجي */
+            border-radius: 8px !important;
+            padding: 10px 12px !important;
+            /* زيادة المساحة الداخلية ليعطي نفس اتساع الأصلي */
+            font-size: 12px !important;
+            /* 🚀 تكبير حجم الخط ليتطابق مع الأصلي تماماً */
+            font-weight: 325 !important;
+            /* جعل الخط سميك */
+            line-height: 1.4 !important;
+            /* ضبط تباعد الأسطر المريح */
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        /* ضبط لون علامة الصح الفيروزية الكبيرة */
+        .valid-banner i {
+            font-size: 12px !important;
+            color: #0f695f !important;
+            margin-top: 3px;
+        }
+
+        /* ضبط الكلمات العريضة بنفس الدرجة */
+        .valid-banner strong {
+            color: #186655 !important;
+            font-weight: 750 !important;
+        }
+
+
+        .valid-banner strong {
+            color: #000000;
+        }
+
+        /* 🚀 شريط أدوات التحكم الأبيض بالكامل والمطابق لصورتك المظبوطة */
+        .viewer-toolbar {
+            background-color: #ffffff;
+            /* تم تحويله للون الأبيض النظيف بالكامل */
+            border-bottom: 1px solid #dfe1e5;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .viewer-toolbar i {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .viewer-toolbar i:hover {
+            color: #2b5ce6;
+        }
+
+        /* حاوية عرض الشهادة النظيفة جداً باللون الرمادي الفاتح والنقي */
+        .document-content {
+            width: 100%;
+            height: 480px;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            justify-content: center;
+            padding: 0px !important;
+            margin-top: 15px !important;
+            border: 1px solid #dfe1e5 !important;
+            border-radius: 4px !important;
+
+        }
+
+        /* 🚀 وسم حاوية العارض لتشغيل الـ PDF بداخلها مباشرة بدلاً من الصورة الثابتة */
+        #viewer {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* النصوص والأزرار التفاعلية أسفل الوثيقة */
+        .reference-text {
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .actions-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        /* الأزرار الرئيسية المتطابقة */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            width: auto;
+            min-width: 240px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-blue,
+        .btn-connect {
+            background-color: #2b5ce6;
+            color: white;
+        }
+
+        .btn-connect {
+            min-width: 190px !important;
+            /* 🚀 تصغير العرض على الكمبيوتر ليكون أصغر من الفوقاني بحاجة بسيطة */
+        }
+
+        /* لوحة تفاصيل البيانات الديناميكية */
+        .details-panel {
+            display: none;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        /* جدول البيانات المتجاوب */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 10px 8px;
+            color: #111;
+            font-weight: 600;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f7f7f7;
+            color: #333;
+        }
+
+        .data-table td.highlight-green {
+            color: #0b6941;
+            font-weight: 500;
+        }
+
+        .status-check {
+            color: #1aa053;
+            font-size: 15px;
+        }
+
+/* 🚀 تنحيف وتصغير الخط المكتوب في البانر بالكامل وإعطائه اللون الفاتح المظبوط */
+.match-banner {
+    background-color: #e1f7ec !important;
+    color: #1aa053 !important;            /* 👈 اللون الأخضر الفاتح المظبوط للجملة الرفيعة */
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    font-weight: 400 !important;           /* 👈 إجبار الخط العادي على الظهور بشكل نحيف ورفيع جداً */
+    font-size: 13.5px !important;
+    padding: 12px 15px !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 15px !important;
+}
+
+/* 🎨 فصل كلمة verified لوحدها وتكبيرها وجعلها عريضة Bold باللون الأخضر الغامق جداً */
+.match-banner strong {
+    color: #0b6941 !important;            /* 👈 اللون الأخضر الغامق الأصلي للكلمة العريضة */
+    font-weight: 700 !important;           /* 👈 خط عريض وسميك جداً لوحدها بدون بقية الجملة */
+    font-size: 13.5px !important;
+}
+
+/* ضبط لون أيقونة الصح المفرغة في البداية */
+.match-banner svg, .match-banner i {
+    width: 16px !important;
+    height: 16px !important;
+    stroke: #1aa053 !important;
+}
+        /* رابط إخفاء التفاصيل */
+        .hide-details-wrapper {
+            width: 100%;
+            text-align: right;
+            margin-bottom: 15px;
+        }
+
+        .hide-link {
+            color: #444ca2;
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* الشريط السفلي الأسود العريض العابر للشاشة بالكامل */
+        .site-footer {
+            background-color: #0f111a;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #a0a5b5;
+            padding: 20px 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: #ffffff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* قواعد مخصصة للموبايل والشاشات الصغيرة لمنع أي أخطاء وبتر الخلفية */
+        @media (max-width: 768px) {
+            body {
+                background-image: none !important;
+                background-color: #fcfcfc;
+            }
+
+            .main-content-wrapper {
+                padding: 10px 0px;
+            }
+
+            .verification-card {
+                box-shadow: none;
+                padding: 15px 5px !important;
+                border-radius: 4px !important;
+                margin: 10px auto !important;
+                width: 92% !important;
+            }
+
+
+            /* 🚀 تشغيل وتكبير اللوجو الشمال (OTHM) لوحده */
+            img[src*="logo-left"] {
+                max-height: 110px !important;
+            }
+
+            /* 🚀 تشغيل وضبط اللوجو اليمين (Smart Verify+) لوحده */
+            img[src*="logo-right"] {
+                max-height: 80px !important;
+                align-self: flex-start !important;
+                /* رفعه لأعلى سنة كما طلبنا سابقاً */
+            }
+
+            .card-header {
+                align-items: flex-start !important;
+            }
+
+
+            .btn {
+                width: 100%;
+            }
+
+            .document-content {
+                height: 480px !important;
+                padding: 0px !important;
+                background-color: #ffffff !important;
+            }
+
+            .site-footer {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                padding: 20px 15px;
+            }
+
+            .footer-links {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .actions-area {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                width: 100% !important;
+            }
+
+            .btn-blue {
+                width: 62% !important;
+                background-color: #2b5ce6 !important;
+                color: white !important;
+                margin-bottom: 12px !important;
+            }
+
+            .btn-connect {
+                display: inline-flex !important;
+                width: 150px !important;
+                /* المقاس الصغير المنكمش المطلوب */
+                min-width: 0px !important;
+                /* 🚀 هذا السطر السحري سيلغي القيد القديم ويجبر الزر على التصغير فوراً */
+                background-color: #3b66de !important;
+                color: white !important;
+                margin-bottom: 5px !important;
+            }
+
+        }
+    </style>
+
+    <div class="main-content-wrapper">
+        <div class="verification-card">
+
+            <!-- الهيدر واللوجوهات الحقيقية للموقع -->
+            <div class="card-header">
+                <img src="logo-left.png" alt="OTHM Qualifications">
+                <img src="logo-right.png" alt="Smart Verify+">
+            </div>
+
+            <!-- أداة عرض الوثيقة المخصصة بالكامل بشكل قارئ الـ PDF النظيف -->
+            <div class="document-viewer">
+                <div class="valid-banner">
+                    <!-- كود علامة الصح الذي أضفته بنجاح -->
+                    <svg xmlns="http://w3.org" viewBox="0 0 512 512"
+                        style="width: 14px; height: 14px; fill: none; stroke: #00777a; stroke-width: 40px; margin-top: 2px; flex-shrink: 0;">
+                        <path
+                            d="M256 48C141.1 48 48 141.1 48 256s93.1 208 208 208 208-93.1 208-208S370.9 48 256 48zm115.1 166.4l-133 133c-6.2 6.2-16.4 6.2-22.6 0l-63-63c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0l51.7 51.7 121.7-121.7c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z" />
+                    </svg>
+                    <!-- 🚀 الكود الصحيح: الكلمات الثلاثة خارج وسم strong لتظهر بخط رفيع ونحيف مثل الأصلي تماماً -->
+<!-- 🚀 التوزيع الاحترافي النهائي: OTHM عريضة، وباقي الكلمات والروابط رفيعة ونحيفة بالملّي -->
+<span><strong>This document is valid</strong> and was issued by <strong>OTHM</strong> to 
+    <strong>ABDELHAMID MOHAMED ELSHAZLY</strong> on <strong>26/08/2025</strong></span>
+                </div>
+
+                <!-- عرض صورة الشهادة أو المستند الأصلي داخل المساحة البيضاء والنظيفة -->
+                <div class="document-content">
+                    <!-- 🚀 تم استبدال الوسم القديم بوسم تشغيل عارض الشهادة التفاعلي هنا بدقة متناهية -->
+                    <div id="viewer"></div>
+                </div>
+            </div>
+
+            <div class="reference-text">
+                Reference: 36491820-15-DZSK
+            </div>
+
+            <div class="actions-area">
+                <button id="verifyBtn" class="btn btn-blue" onclick="showVerificationDetails()">
+                    <svg xmlns="http://w3.org" viewBox="0 0 512 512"
+                        style="width: 13px; height: 13px; fill: none; stroke: #ffffff; stroke-width: 50px; margin-right: 6px; flex-shrink: 0;">
+                        <path
+                            d="M256 48C141.1 48 48 141.1 48 256s93.1 208 208 208 208-93.1 208-208S370.9 48 256 48zm115.1 166.4l-133 133c-6.2 6.2-16.4 6.2-22.6 0l-63-63c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0l51.7 51.7 121.7-121.7c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z" />
+                    </svg>Verify this Certificate
+                </button>
+
+<div id="detailsPanel" class="details-panel" style="margin-top: 20px;">
+    <table class="data-table" style="width: 100%; border-collapse: collapse; margin-bottom: 0px !important; border: none !important;">
+        <!-- 1. صف العناوين الرئيسي: رمادي خفيف -->
+<!-- 🚀 التعديل النهائي: تكبير الكلمات الثلاثة وجعلها عريضة Bold مطابقة للأصلي تماماً -->
+<thead style="background-color: #f8f9fa !important; border: none !important;">
+    <tr style="text-align: left; border: none !important;">
+        <th style="padding: 12px 10px; color: #000000 !important; font-weight: 700 !important; font-size: 15px !important; border: none !important;">Data</th>
+        <th style="padding: 12px 10px; color: #000000 !important; font-weight: 700 !important; font-size: 15px !important; border: none !important;">Details</th>
+        <th style="padding: 12px 10px; color: #000000 !important; font-weight: 700 !important; font-size: 15px !important; text-align: right; padding-right: 20px; border: none !important;">Verified</th>
+    </tr>
+</thead>
+        <tbody>
+            <!-- 2. صف الاسم الأول: أبيض سادة -->
+            <tr class="animated-row" style="border-bottom: 1px solid #dfe1e5; background-color: #ffffff !important;">
+                <td style="padding: 14px 10px; color: #161515; font-size: 14px;">Student Full Name</td>
+                <td style="padding: 14px 10px; color: #036156; font-weight: bold; font-size: 14px;">ABDELHAMID MOHAMED ELSHAZLY</td>
+                <td style="padding: 14px 10px; text-align: right; padding-right: 20px;">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #0d665c !important; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: middle; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><polyline points="7.5 12 10.5 15 16.5 9"></polyline></svg>
+                </td>
+            </tr>
+            <!-- 3. صف الجهة المانحة: رمادي خفيف -->
+            <tr class="animated-row" style="border-bottom: 1px solid #dfe1e5; background-color: #f8f9fa !important;">
+                <td style="padding: 14px 10px; color: #000000; font-size: 14px;">Issuing Body</td>
+                <td style="padding: 14px 10px; color: #036156; font-weight: bold; font-size: 14px;">OTHM</td>
+                <td style="padding: 14px 10px; text-align: right; padding-right: 20px;">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #0d665c !important; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: middle; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><polyline points="7.5 12 10.5 15 16.5 9"></polyline></svg>
+                </td>
+            </tr>
+            <!-- 4. صف التاريخ: أبيض سادة -->
+            <tr class="animated-row" style="border-bottom: 1px solid #dfe1e5; background-color: #ffffff !important;">
+                <td style="padding: 14px 10px; color: #000000; font-size: 14px;">Date of Award</td>
+                <td style="padding: 14px 10px; color: #036156; font-weight: bold; font-size: 14px;">26/08/2025</td>
+                <td style="padding: 14px 10px; text-align: right; padding-right: 20px;">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #0d665c !important; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: middle; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><polyline points="7.5 12 10.5 15 16.5 9"></polyline></svg>
+                </td>
+            </tr>
+            <!-- 5. صف التخصص: رمادي خفيف -->
+            <tr class="animated-row" style="border-bottom: 1px solid #dfe1e5; background-color: #f8f9fa !important;">
+                <td style="padding: 14px 10px; color: #000000; font-size: 14px;">Qualification Title</td>
+                <td style="padding: 14px 10px; color: #036156; font-weight: bold; font-size: 14px;">OTHM Level 7 Diploma in Occupational Health and Safety</td>
+                <td style="padding: 14px 10px; text-align: right; padding-right: 20px;">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #0d665c !important; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: middle; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><polyline points="7.5 12 10.5 15 16.5 9"></polyline></svg>
+                </td>
+            </tr>
+<!-- 🚀 6. الصف الأخير: الشريط الأخضر المدمج المنسق بالملّي والألوان الموزونة -->
+<tr class="animated-row" style="background-color: #d2f4f1 !important;">
+    <td colspan="3" style="padding: 12px 15px !important; border-radius: 0 0 6px 6px !important; border: none !important;">
+        <div style="display: flex !important; align-items: center !important; gap: 8px !important; font-family: 'Inter', 'Segoe UI', sans-serif !important; color: #0f695f !important; font-weight: 400 !important; font-size: 14px !important;">
+            
+            <!-- 🔗 أيقونة الصح الخضراء المفرغة المظبوطة بلونها الفاتح -->
+            <svg viewBox="0 0 24 24" style="width: 17px; height: 17px; fill: none; stroke: #02787b !important; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><polyline points="7.5 12 10.5 15 16.5 9"></polyline></svg>
+            
+            <!-- 🎨 الفصل الاحترافي: بقية الجملة نحيفة وفاتحة، وكلمة verified لوحدها عريضة وداكنة -->
+            <span>The details match the DC System, this document is <strong style="color: #0f685e !important; font-weight: 700 !important; font-size: 14px !important; display: inline !important;">verified</strong></span>
+        
+        </div>
+    </td>
+</tr>
+        </tbody>
+    </table>
+
+    <div class="hide-details-wrapper" style="margin-top: 15px;">
+        <a class="hide-link" onclick="hideVerificationDetails()">Hide Details</a>
+    </div>
+</div>
+<!-- 🚀 كود الحركة المطور: تم تبطئة الحركة لظهور انسيابي وفخم جداً -->
+<script>
+function triggerTableAnimation() {
+    const rows = document.querySelectorAll('.animated-row');
+    rows.forEach((row, index) => {
+        // 1. تصفير وإخفاء فوري عند الضغط
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(15px)'; /* زيادة مسافة الصعود سنة */
+        row.style.transition = 'none';
+        
+        // 2. انطلاق الظهور التتابعي الموزون والبطيء
+        setTimeout(() => {
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+            row.style.transition = 'opacity 0.65s ease, transform 0.65s ease'; /* حركة أنعم وأبطأ */
+        }, (index + 1) * 550); /* زيادة فارق الوقت بين السطور لتبدو أبطأ */
+    });
+}
+</script>
+                <!-- تأكد من كتابة الكلاس btn-connect وإضافة كود الـ svg للسهم -->
+                <a href="https://dcwverify.othm.org.uk/Account/Login?ReturnUrl=%2Fconnections%3Freference%3D43089206-01-R3K1"
+                    target="_blank" class="btn btn-connect">
+                    Connect me <svg xmlns="http://w3.org" viewBox="0 0 448 512"
+                        style="width: 11px; height: 11px; fill: #ffffff; margin-left: 6px; margin-top: 1px;">
+                        <path
+                            d="M432 320H400c-8.8 0-16 7.2-16 16v112H48V128h112c8.8 0 16-7.2 16-16V80c0-8.8-7.2-16-16-16H32C14.3 64 0 78.3 0 96v384c0 17.7 14.3 32 32 32h384c17.7 0 32-14.3 32-32V336c0-8.8-7.2-16-16-16zm-61-190L233.4 267.5c-6.2 6.2-16.4 6.2-22.6 0l-22.6-22.6c-6.2-6.2-6.2-16.4 0-22.6L325.8 84.9l-61.7-1.4c-11.3-.2-19.8-10-18.3-21.3l2.2-16c1.2-8.7 8.6-15.1 17.4-14.7l158.4 7.2c9 .4 16.2 7.6 16.5 16.6l7.2 158.4c.4 8.8-6 16.2-14.7 17.4l-16 2.2c-11.3 1.5-21-7-21.3-18.3l-1.4-61.7z" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+<!-- 🚀 1. كود الـ Footer النظيف (بدون زر الصعود بالداخل) -->
+<footer class="site-footer" style="background-color: #0c1017 !important; color: #ffffff !important; padding: 25px 20px !important; text-align: center !important; font-family: 'Inter', 'Segoe UI', sans-serif !important; position: relative;">
+    <div style="font-size: 11px !important; color: #94a3b8 !important; margin-bottom: 8px !important;">
+        2026 © Advanced Secure Technologies
+    </div>
+    <div class="footer-links" style="display: flex !important; justify-content: center !important; align-items: center !important; gap: 15px !important; flex-wrap: wrap !important; font-size: 12px !important;">
+        <a href="https://verification.othm.org.uk/Pages/Accessibility" target="_blank" style="color: #ffffff !important; text-decoration: none !important; display: inline-flex; align-items: center; gap: 5px;">
+            Accessibility Statement 
+            <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+        <a href="https://verification.othm.org.uk/Pages/Privacy" style="color: #ffffff !important; text-decoration: none !important;">Privacy</a>
+        <a href="https://verification.othm.org.uk/Pages/Faq" style="color: #ffffff !important; text-decoration: none !important;">FAQ</a>
+        <a href="https://verification.othm.org.uk/Pages/Terms" style="color: #ffffff !important; text-decoration: none !important;">Terms</a>
+        <a href="https://verification.othm.org.uk/Pages/Support" style="color: #ffffff !important; text-decoration: none !important;">Support</a>
+    </div>
+</footer>
+
+<!-- 🚀 2. كود زر الصعود الذكي الثابت (خارج الـ Footer ومخفي مبدئياً) -->
+<!-- 🚀 زر الصعود المحدث: الـ onclick معدل وجواه السهم السميك المظبوط -->
+<button id="scrollToTopBtn" onclick="this.blur(); smoothScrollToTop();" class="fixed-scroll-btn">
+    <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: none; stroke: #ffffff !important; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round;">
+        <line x1="12" y1="19" x2="12" y2="5"></line>
+        <polyline points="5 12 12 5 19 12"></polyline>
+    </svg>
+</button>
+
+<!-- 🎨 3. تنسيق التثبيت والشفافية والتفاعل مع الماوس -->
+<style>
+.fixed-scroll-btn {
+    position: fixed !important;
+    right: 25px !important;
+    bottom: 25px !important;
+    width: 38px !important;
+    height: 38px !important;
+    background-color: #3b52f6 !important;
+    border: none !important;
+    border-radius: 6px !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    z-index: 9999 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease, background-color 0.2s ease, transform 0.3s ease !important;
+    transform: translateY(10px);
+}
+.fixed-scroll-btn.show {
+    opacity: 0.30 !important; /* 🚀 يرجع شفاف خفيف على الموبايل والكمبيوتر فوراً */
+    pointer-events: auto !important;
+    transform: translateY(0);
+}
+
+/* 🚀 الخدعة السحرية: الـ hover يشتغل فقط على الأجهزة اللي فيها ماوس (الكمبيوتر) */
+@media (hover: hover) {
+    .fixed-scroll-btn.show:hover {
+        opacity: 1 !important;
+        background-color: #2563eb !important;
+    }
+}
+
+/* 🚀 يتلون فقط لحظة الضغط الفعلي بصباعك على الموبايل (Active) */
+.fixed-scroll-btn:active {
+    opacity: 1 !important;
+    background-color: #2563eb !important;
+}
+
+/* إلغاء أي ألوان ثابتة أو تحديد بعد الضغط تماماً */
+.fixed-scroll-btn:focus, .fixed-scroll-btn:focus-visible {
+    outline: none !important;
+    background-color: #3b52f6 !important;
+}
+</style>
+
+<!-- 🧠 كود الحركة السحرية: تمنع العناد تماماً وترجع الشفافية فوراً -->
+<script>
+let scrollInterval = null;
+let lastScrollTop = 0;
+
+function smoothScrollToTop() {
+    if (scrollInterval) clearInterval(scrollInterval);
+    
+    lastScrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    
+    // ⏳ حركة السلو موشن الانسيابية (وحدة وحدة)
+    scrollInterval = setInterval(function() {
+        var currentScroll = document.documentElement.scrollTop || document.body.scrollTop;
+        
+        if (currentScroll > 0) {
+window.scrollTo(0, currentScroll - Math.max(1, currentScroll / 24));
+            lastScrollTop = currentScroll; // تحديث آخر نقطة صعود وصل لها الكود
+        } else {
+            stopScrollAnimation();
+        }
+    }, 12);
+}
+
+function stopScrollAnimation() {
+    if (scrollInterval) {
+        clearInterval(scrollInterval);
+        scrollInterval = null;
+    }
+}
+
+// 🚀 الحساس الأقوى على الإطلاق: لو المستخدم حاول ينزل بالفأرة ويعاند الصعود، نقفل التايمر فوراً!
+window.addEventListener('scroll', function() {
+    var currentScroll = document.documentElement.scrollTop || document.body.scrollTop;
+    
+    // لو التايمر شغال والمستخدم بيسحب لتحت (يعني الحالي أكبر من اللي فات)، نوقف الحركة فوراً
+    if (scrollInterval && currentScroll > lastScrollTop) {
+        stopScrollAnimation();
+    }
+    
+    // كود تفعيل ظهور واختفاء الزرار التلقائي في أول الصفحة
+    var scrollBtn = document.getElementById('scrollToTopBtn');
+    if (scrollBtn) {
+        if (currentScroll > 200) {
+            scrollBtn.classList.add('show');
+        } else {
+            scrollBtn.classList.remove('show');
+            // زيل التركيز برمجياً ليرجع شفاف تماماً عند الاختفاء والظهور
+            scrollBtn.blur(); 
+        }
+    }
+});
+
+// تأكيد إضافي عند لمس الشاشة أو حركة العجلة لوقف الأنميشن
+window.addEventListener('wheel', stopScrollAnimation);
+window.addEventListener('touchmove', stopScrollAnimation);
+</script>
+
+    <script>
+        const verifyBtn = document.getElementById('verifyBtn');
+        const detailsPanel = document.getElementById('detailsPanel');
+
+function showVerificationDetails() {
+    // 1. إظهار جدول البيانات
+    document.getElementById('detailsPanel').style.display = 'block'; 
+    
+    // 🚀 2. السطر الجديد المطلـوب لإخفاء الزرار الأزرق فوراً
+    document.getElementById('verifyBtn').style.display = 'none'; 
+    
+    // 3. تشغيل حركة الجدول الانسيابية
+    triggerTableAnimation(); 
+}
+
+        function hideVerificationDetails() {
+            detailsPanel.style.display = 'none';
+            verifyBtn.style.display = 'inline-flex';
+        }
+        // تشغيل الأداة في وضع عرض الصور للحفاظ على الشريط العلوي وإلغاء اللوجو تماماً
+        WebViewer({
+            path: 'lib',
+            initialDoc: 'preview.png', // 🚀 اسم صورة الشهادة الجديدة بجانب ملف الـ html
+            licenseKey: '5jqmC560cL7nFPCnhsz8' // مفتاحك الجديد المظبوط
+        }, document.getElementById('viewer'))
+            .then(instance => {
+                console.log("Viewer is Ready with images and no watermark!");
+            });
+
+    </script>
+    </body>
+
+</html>
